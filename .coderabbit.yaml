@@ -1,0 +1,127 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# Configuração do CodeRabbit do EmpireMuse-RPC-app (arquivo por repositório; não herda da organização).
+# Problema que resolve: revisão genérica não conhece o risco deste cliente (token do bot e conexões WebSocket para
+# servidores configurados pelo usuário). Custo: 1 arquivo a manter. Revisão desta configuração: 2027-01-24.
+
+language: pt-BR
+tone_instructions: >-
+  Revisor técnico objetivo, em pt-BR. Foco em bugs, segurança e regressões. Cite arquivo:linha, agrupe repetições
+  em um só comentário e não elogie.
+inheritance: false
+
+reviews:
+  profile: chill
+  # Falso de propósito: o modo `error` dos checks de pré-merge só sinaliza; o bloqueio de merge é da proteção de branch.
+  request_changes_workflow: false
+  high_level_summary: true
+  review_status: true
+  collapse_walkthrough: true
+  changed_files_summary: false
+  sequence_diagrams: false
+  estimate_code_review_effort: false
+  poem: false
+  in_progress_fortune: false
+  suggested_reviewers: false
+  suggested_labels: false
+  auto_apply_labels: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    base_branches:
+      - main
+    ignore_title_keywords:
+      - "WIP"
+      - "[skip review]"
+
+  path_filters:
+    - "!ui/**"
+    - "!gui/**"
+    - "!*.ico"
+    - "!rpc_client.spec"
+
+  path_instructions:
+    - path: "{rpc_client.py,config_loader.py,qt_tray.py,rpc_gui.py,rpc_preview_card.py}"
+      instructions: |
+        - Segurança do cliente RPC: o token do bot nunca vai para log, tela ou mensagem de erro; conexões WebSocket só
+          para as URLs configuradas, com `wss` quando houver rede pública; toda mensagem recebida é validada (tipo,
+          campos esperados e tamanho) antes de ser usada, e os dados repassados ao Discord são limitados a uma allowlist.
+        - Reconexão com espera crescente e sem laço apertado; tarefas asyncio canceladas ao encerrar; nada bloqueante no
+          loop de eventos nem na thread da interface.
+        - Textos da interface em português do Brasil com acentuação (`langs.py`); identificadores em inglês.
+    - path: "config_loader.py"
+      instructions: |
+        - Arquivo de configuração do usuário é entrada não confiável: validar tipos e valores, nunca executar conteúdo
+          dele, e não gravar o token em locais legíveis por outros usuários sem necessidade.
+    - path: "{requirements.txt,build.bat,start.bat}"
+      instructions: |
+        - Dependências com versão fixada quando possível e sem execução de scripts baixados da internet; dependência VCS
+          só fixada por SHA completo de commit.
+    - path: "**/*.md"
+      instructions: |
+        - Português do Brasil com acentuação correta.
+
+  pre_merge_checks:
+    docstrings:
+      mode: off
+    title:
+      mode: warning
+      requirements: >-
+        Conventional Commits: tipo (feat, fix, refactor, docs, test, chore, perf, ci), escopo opcional e descrição curta.
+    description:
+      mode: warning
+    issue_assessment:
+      mode: off
+    custom_checks:
+      - name: "Sem segredos nem detalhe explorável"
+        mode: error
+        instructions: |
+          Falha se o diff adiciona a um arquivo público um segredo real (token do bot, chave, senha, webhook) ou o passo
+          a passo explorável de uma vulnerabilidade ainda não corrigida. Valores sintéticos claramente falsos passam.
+
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+    simplify:
+      enabled: false
+
+  tools:
+    ruff:
+      enabled: true
+    actionlint:
+      enabled: true
+    yamllint:
+      enabled: true
+    shellcheck:
+      enabled: true
+    markdownlint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    osvScanner:
+      enabled: true
+    zizmor:
+      enabled: true
+    github-checks:
+      enabled: true
+    pylint:
+      enabled: false
+    flake8:
+      enabled: false
+    languagetool:
+      enabled: false
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  learnings:
+    scope: local
+  issues:
+    scope: local
+  pull_requests:
+    scope: local
